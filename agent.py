@@ -140,6 +140,16 @@ class KnowledgeAssistant:
             else:
                 messages = self.conversation_history
 
+            # 打印发给模型的 messages 结构-》属于requests
+            print(f"  --- ITERATION {i+1} ---")
+            print(f"  发送 {len(messages)} 条消息:")
+            for m in messages:
+                role = m.get("role", "?")
+                c = str(m.get("content", ""))[:60]
+                has_tc = "tool_calls" in m
+                tc_mark = f" [+{len(m['tool_calls'])}工具调用]" if has_tc else ""
+                print(f"    [{role}] {c}{tc_mark}")
+            # 调用模型-》属于responses
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -149,6 +159,14 @@ class KnowledgeAssistant:
                 max_tokens=8192,
             )
             msg = response.choices[0].message
+
+            print(f" 模型返回：")
+            print(f" content: {str(msg.content or '')[:80]}")
+            if msg.tool_calls:
+                for tc in msg.tool_calls:
+                    print(f" tool_calls: {tc.function.name}({tc.function.arguments})")
+            else:
+                print("无工具调用")
 
             # 没有工具调用 -> 输出答案，结束
             if not msg.tool_calls:
